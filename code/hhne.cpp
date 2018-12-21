@@ -1,6 +1,7 @@
+//  HHNE by Yiding Zhang
 //  The hhne.cpp code was built upon the word2vec.c from https://code.google.com/archive/p/word2vec/
 
-//  Modifications Copyright (C) 2018 <ydzhang.snooker@gmail.com>
+//  Modifications Copyright (C) 2018
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -45,10 +46,9 @@
 #define MAX_SENTENCE_LENGTH 1000
 #define MAX_CODE_LENGTH 40
 
-//const int vocab_hash_size = 30000000;  // Maximum 30 * 0.7 = 21M words in the vocabulary
 const int vocab_hash_size = 100000000;  // Maximum 100 * 0.7 = 70M
 
-typedef double real;                    // Precision of float numbers
+typedef double real;
 
 struct vocab_word {
   long long cn; 
@@ -92,7 +92,6 @@ void InitUnigramTable() {
   }
 }
 
-// Reads a single word from a file, assuming space + tab + EOL to be word boundaries
 void ReadWord(char *word, FILE *fin) {
   int a = 0, ch; 
   while (!feof(fin)) {
@@ -110,12 +109,11 @@ void ReadWord(char *word, FILE *fin) {
     }
     word[a] = ch;
     a++;
-    if (a >= MAX_STRING - 1) a--;   // Truncate too long words
+    if (a >= MAX_STRING - 1) a--;
   }
   word[a] = 0;
 }
 
-// Returns hash value of a word 
 int GetWordHash(char *word) {
   unsigned long long a, hash = 0;
   for (a = 0; a < strlen(word); a++) hash = hash * 257 + word[a];
@@ -123,8 +121,6 @@ int GetWordHash(char *word) {
   return hash;
 }
 
-// Returns position of a word in the vocabulary; if the word is not found, returns -1
-// 处理哈希冲突
 int SearchVocab(char *word) {
   unsigned int hash = GetWordHash(word);
   while (1) {
@@ -135,15 +131,13 @@ int SearchVocab(char *word) {
   return -1;
 }
 
-// Reads a word and returns its index in the vocabulary
 int ReadWordIndex(FILE *fin) {
   char word[MAX_STRING];
   ReadWord(word, fin);
-  if (feof(fin)) return -1; //当文只有一个EOF字符时，将EOF读入word后，_IOEOF被重置，达到文件尾
+  if (feof(fin)) return -1;
   return SearchVocab(word);
 }
 
-// Adds a word to the vocabulary
 int AddWordToVocab(char *word) {
   unsigned int hash, length = strlen(word) + 1;
   if (length > MAX_STRING) length = MAX_STRING;
@@ -151,38 +145,32 @@ int AddWordToVocab(char *word) {
   strcpy(vocab[vocab_size].word, word);
   vocab[vocab_size].cn = 0;
   vocab_size++;
-  // Reallocate memory if needed
   if (vocab_size + 2 >= vocab_max_size) {
     vocab_max_size += 1000;
     vocab = (struct vocab_word *)realloc(vocab, vocab_max_size * sizeof(struct vocab_word));
   }
   hash = GetWordHash(word);
-  while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;  // 开放地址发解决哈希冲突，哈希表初始值为-1
+  while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
   vocab_hash[hash] = vocab_size - 1;
   return vocab_size - 1;
 }
 
-// Used later for sorting by word counts
 int VocabCompare(const void *a, const void *b) {
     return ((struct vocab_word *)b)->cn - ((struct vocab_word *)a)->cn;
 }
 
-// Sorts the vocabulary by frequency using word counts 排序，词频降序
 void SortVocab() {
   int a, size;
   unsigned int hash;
-  // Sort the vocabulary and keep </s> at the first position
   qsort(&vocab[1], vocab_size - 1, sizeof(struct vocab_word), VocabCompare);
   for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
   size = vocab_size;
   train_words = 0;
   for (a = 0; a < size; a++) {
-    // Words occuring less than min_count times will be discarded from the vocab
     if ((vocab[a].cn < min_count) && (a != 0)) {
       vocab_size--;
       free(vocab[a].word);
     } else {
-      // Hash will be re-computed, as after the sorting it is not actual
       hash=GetWordHash(vocab[a].word);
       while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
       vocab_hash[hash] = a;
@@ -190,14 +178,12 @@ void SortVocab() {
     }
   }
   vocab = (struct vocab_word *)realloc(vocab, (vocab_size + 1) * sizeof(struct vocab_word));
-  // Allocate memory for the binary tree construction
   for (a = 0; a < vocab_size; a++) {
     vocab[a].code = (char *)calloc(MAX_CODE_LENGTH, sizeof(char));
     vocab[a].point = (int *)calloc(MAX_CODE_LENGTH, sizeof(int));
   }
 }
 
-// Reduces the vocabulary by removing infrequent tokens
 void ReduceVocab() {
   int a, b = 0;
   unsigned int hash;
@@ -209,7 +195,6 @@ void ReduceVocab() {
   vocab_size = b;
   for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
   for (a = 0; a < vocab_size; a++) {
-    // Hash will be re-computed, as it is not actual
     hash = GetWordHash(vocab[a].word);
     while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
     vocab_hash[hash] = a;
@@ -218,8 +203,6 @@ void ReduceVocab() {
   min_reduce++;
 }
 
-// Create binary Huffman tree using the word counts
-// Frequent words will have short uniqe binary codes
 void CreateBinaryTree() {
   long long a, b, i, min1i, min2i, pos1, pos2, point[MAX_CODE_LENGTH];
   char code[MAX_CODE_LENGTH];
@@ -230,9 +213,7 @@ void CreateBinaryTree() {
   for (a = vocab_size; a < vocab_size * 2; a++) count[a] = 1e15;
   pos1 = vocab_size - 1;
   pos2 = vocab_size;
-  // Following algorithm constructs the Huffman tree by adding one node at a time
   for (a = 0; a < vocab_size - 1; a++) {
-    // First, find two smallest nodes 'min1, min2'
     if (pos1 >= 0) {
       if (count[pos1] < count[pos2]) {
         min1i = pos1;
@@ -262,7 +243,6 @@ void CreateBinaryTree() {
     parent_node[min2i] = vocab_size + a;
     binary[min2i] = 1;
   }
-  // Now assign binary code to each vocabulary word
   for (a = 0; a < vocab_size; a++) {
     b = a;
     i = 0;
@@ -474,7 +454,6 @@ void *TrainModelThread(void *id) {
         if (word == -1) continue;
         word_count++;
         if (word == 0) break;
-        // The subsampling randomly discards frequent words while keeping the ranking same
         if (sample > 0) {
           real ran = (sqrt(vocab[word].cn / (sample * train_words)) + 1) * (sample * train_words) / vocab[word].cn;
           next_random = next_random * (unsigned long long)25214903917 + 11;
@@ -504,7 +483,6 @@ void *TrainModelThread(void *id) {
 
     next_random = next_random * (unsigned long long)25214903917 + 11;
     b = 0;
-    //train skip-gram
     for (a = b; a < window * 2 + 1 - b; a++) if (a != window) {
       c = sentence_position - window + a;
       if (c < 0) continue;
@@ -513,8 +491,6 @@ void *TrainModelThread(void *id) {
       if (last_word == -1) continue;
       l1 = last_word * layer1_size;
       for (c = 0; c < layer1_size; c++) neu1e[c] = 0;
-      
-      // NEGATIVE SAMPLING
       if (negative > 0) for (d = 0; d < negative + 1; d++) {
         if (d == 0) {
           target = word;
@@ -533,7 +509,6 @@ void *TrainModelThread(void *id) {
         hybolic_distance = 0;
         deriv_syn0_tmp_cof = 0;
         deriv_syn1neg_tmp_cof = 0;
-
         if (syn0[l1] != syn0[l1]) {printf("error! syn0[%lld]=%f\n", l1, syn0[l1]); exit(1);}
         if (syn1neg[l2] != syn1neg[l2]) {printf("error! syn1neg[%lld]=%f\n", l2, syn1neg[l2]); exit(1);}
         for (c = 0; c < layer1_size; c++) hybolic_syn0_norm += syn0[c + l1] * syn0[c + l1];
@@ -627,12 +602,9 @@ void TrainModel() {
   char txt[5];
   strcpy(txt, ".txt\0");
   fp = fopen(strcat(output_file, txt), "wb");
-  // Save the word vectors
   fprintf(fp, "%lld %lld\n", vocab_size, layer1_size);
   for (a = 0; a < vocab_size; a++) {
     fprintf(fp, "%s ", vocab[a].word);
-    //if (binary) for (b = 0; b < layer1_size; b++) fwrite(&syn0[a * layer1_size + b], sizeof(real), 1, fo);
-    //else for (b = 0; b < layer1_size; b++) fprintf(fo, "%lf ", syn0[a * layer1_size + b]);
     for (b = 0; b < layer1_size; b++) fprintf(fp, "%lf ", syn0[a * layer1_size + b]);
     fprintf(fp, "\n");
   }
