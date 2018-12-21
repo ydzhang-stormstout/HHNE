@@ -45,6 +45,7 @@ Options for training:
 		The vocabulary will be read from <file>, not constructed from the training data
 
 Examples:
+
 ./hhne -train random_walks.txt -output hhne.embeddings -size 2 -window 5 -negative 10 -threads 32 -iter 5 -alpha 0.025
 
 Input:
