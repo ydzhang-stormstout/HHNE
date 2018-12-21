@@ -398,10 +398,6 @@ void InitNet() {
       next_random = next_random * (unsigned long long)25214903917 + 11;
       syn0[a * layer1_size + b] = (((next_random & 0xFFFF) / (real)65536) - 0.5) / layer1_size * random_radius;
 	}
-	for (b = 0; b < layer1_size; b++) init_norm += syn0[a * layer1_size + b] * syn0[a * layer1_size + b];
-    if (init_norm >= 1) {printf("error: init_norm is over than 1\n"); exit(1);};
-	if (init_norm == 0) {printf("error: init_norm is equal to 0\n"); exit(1);};
-	init_norm = 0;
   }
   CreateBinaryTree();
 }
@@ -503,8 +499,6 @@ void *TrainModelThread(void *id) {
         hybolic_distance = 0;
         deriv_syn0_tmp_cof = 0;
         deriv_syn1neg_tmp_cof = 0;
-        if (syn0[l1] != syn0[l1]) {printf("error! syn0[%lld]=%f\n", l1, syn0[l1]); exit(1);}
-        if (syn1neg[l2] != syn1neg[l2]) {printf("error! syn1neg[%lld]=%f\n", l2, syn1neg[l2]); exit(1);}
         for (c = 0; c < layer1_size; c++) hybolic_syn0_norm += syn0[c + l1] * syn0[c + l1];
         hybolic_alpha = 1 - hybolic_syn0_norm;
         if (hybolic_alpha < 0.0001) hybolic_alpha = 0.01;
