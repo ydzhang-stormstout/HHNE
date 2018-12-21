@@ -6,8 +6,8 @@ The HHNE code is built upon Mikolov et al.'s word2vec.c from https://code.google
 
 ## Compile
 
-1. cmd "make" in folder HHNE/
-2. run "hhne" in folder HHNE/
+1. cmd "make" in folder HHNE/code/
+2. run "hhne" in folder HHNE/code/
 
 ## Usage
 
