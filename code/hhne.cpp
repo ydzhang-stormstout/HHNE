@@ -333,7 +333,7 @@ void ReadVocab() {
     printf("Vocab size: %lld\n", vocab_size);
     printf("Words in train file: %lld\n", train_words);
   }
-  fin = fopen(train_file, "rb"); //　　
+  fin = fopen(train_file, "rb");
   if (fin == NULL) {
     printf("ERROR: training data file not found!\n");
     exit(1);
@@ -370,17 +370,12 @@ real* ExponentialMap(real *x, real *v) {
     for (c = 0; c < layer1_size; c++) map_vec[c] += v[c] * tmp_cof;
     tmp_cof = 1 + (lambda_x - 1) * cosh(lambda_x * v_norm) + lambda_x * xv_dot * sinh(lambda_x * v_norm);
     for (c = 0; c < layer1_size; c++) map_vec[c] = map_vec[c] / tmp_cof;
-	if (map_vec[0] != map_vec[0]){
-		printf("\nerror: map_vec is nan in ExponentialMap\n");
-	}
     tmp_cof = 0;
     for (c = 0; c < layer1_size; c++) tmp_cof += map_vec[c] * map_vec[c];
     tmp_cof = sqrt(tmp_cof);
     if (tmp_cof >= 1 && tmp_cof < 1.01){
     	for (c = 0; c < layer1_size; c++) map_vec[c] = sqrt_a * map_vec[c] / tmp_cof;
     }
-    else if (tmp_cof >= 1.01) {
-    	printf("error: exponential map error,");}
     free(normal_tmp_vec);
     free(tmp_x);
     free(tmp_v);
@@ -392,7 +387,6 @@ void InitNet() {
   real init_norm = 0;
   a = posix_memalign((void **)&syn0, 128, (long long)vocab_size * layer1_size * sizeof(real));
   if (syn0 == NULL) {printf("Memory allocation failed\n"); exit(1);}
-  // Negative Sampling
   if (negative>0) {
     a = posix_memalign((void **)&syn1neg, 128, (long long)vocab_size * layer1_size * sizeof(real));
     if (syn1neg == NULL) {printf("Memory allocation failed\n"); exit(1);}
@@ -555,17 +549,13 @@ void *TrainModelThread(void *id) {
         for (c = 0; c < layer1_size; c++) deriv_syn1neg_poincare[c] = deriv_syn1neg_tmp_cof * deriv_syn1neg_poincare[c];
         for (c = 0; c < layer1_size; c++) map_tmp_arr[c] = syn1neg[c + l2];
         map_arr = ExponentialMap(map_tmp_arr, deriv_syn1neg_poincare);
-        if (map_arr[0] != map_arr[0]) {
-        	printf("error: exponential map\n");
-        	exit(1);}
         for (c = 0; c < layer1_size; c++) syn1neg[c + l2] = map_arr[c];
         free(map_arr);
       }
 
       for (c = 0; c < layer1_size; c++) map_tmp_arr[c] = syn0[c + l1];
       map_arr = ExponentialMap(map_tmp_arr, neu1e);
-      if (map_arr[0] != map_arr[0]) {printf("error: exponential map err map_vec[0] = %f; syn0[%lld] = %f, neu1e[0] = %f\n", map_arr[0], c+l1, syn1neg[c + l1], neu1e[0]); exit(1);}
-  	  for (c = 0; c < layer1_size; c++) syn0[c + l1] = map_arr[c];
+      for (c = 0; c < layer1_size; c++) syn0[c + l1] = map_arr[c];
       free(map_arr);
     }
 
