@@ -57,7 +57,17 @@ Output:
 The file for each node in text format		(e.g., hhne.embeddings.txt)
 
 ## HHNE bibtex information
-
+    @article{zhang2021embedding,
+     title={Embedding Heterogeneous Information Network in Hyperbolic Spaces},
+     author={Zhang, Yiding and Wang, Xiao and Liu, Nian and Shi, Chuan},
+     journal={ACM Transactions on Knowledge Discovery from Data (TKDD)},
+     volume={16},
+     number={2},
+     pages={1--23},
+     year={2021},
+     publisher={ACM New York, NY}
+    }
+    
     @inproceedings{HHNE:AAAI19,
      title={Hyperbolic Heterogeneous Information Network Embedding},
      author = {Wang, Xiao and Zhang, Yiding and Shi, Chuan},
